@@ -1,9 +1,8 @@
-package zad1;
+package zad1.DictClient;
 
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.InputMismatchException;
 
 public class DictClientModel {
     public final static int port = 4321;
@@ -79,7 +78,7 @@ public class DictClientModel {
             while (response != null && !response.startsWith("DONE")) {
                 response = receptionIn.readLine();
                 translatedWord.append(response);
-                if (response.startsWith("NOT FOUND")) {
+                if (response.startsWith("WRONG DATA") || response.startsWith("NOT FOUND")) {
                     break;
                 }
             }

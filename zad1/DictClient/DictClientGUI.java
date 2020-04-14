@@ -1,4 +1,4 @@
-package zad1;
+package zad1.DictClient;
 
 import javax.swing.*;
 import java.awt.*;

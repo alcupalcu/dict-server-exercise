@@ -1,8 +1,7 @@
-package zad1;
+package zad1.DictClient;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.net.SocketTimeoutException;
 
 public class DictClientController {
     private DictClientModel model;
