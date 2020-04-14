@@ -1,15 +1,12 @@
 package zad1;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.InputMismatchException;
 
 public class DictClientModel {
     public final static int port = 4321;
-    private String server;
     private Socket clientSocket;
     private Socket receptionSocket;
     private ServerSocket receptionServerSocket;
@@ -18,7 +15,7 @@ public class DictClientModel {
     private BufferedReader receptionIn;
     public boolean running;
 
-    public DictClientModel(String server, int timeout) throws Exception {
+    public DictClientModel(String server, int timeout) {
         try {
             clientSocket = new Socket(server, port);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
@@ -27,9 +24,9 @@ public class DictClientModel {
             running = true;
 
             String response = in.readLine();
-            System.out.println(response);
+            System.out.println("Server response: " + response);
             //FOR CHANGE WHEN SERVER IS PROGRAMMED
-            if (!response.startsWith("WHAT?")) {
+            if (!response.startsWith("BUSY")) {
                 System.out.println("Server is too busy. Try again later.");
                 running = false;
                 cleanExit();
@@ -40,17 +37,34 @@ public class DictClientModel {
 
         } catch (UnknownHostException exc) {
             running = false;
-            throw new UnknownHostException("Unknown host " + server);
+            System.out.println("Unknown host " + server);
         } catch (Exception exc) {
             running = false;
-            throw new Exception(exc.toString());
+            exc.printStackTrace();
         }
     }
 
-    public String search(String word, String language, int port) {
+    public String search(String word, String language, String portNumber) {
+
         try {
+
+            if (word.isEmpty()) {
+                return "Please provide a word to be translated.";
+            }
+
+            if (language.isEmpty()) {
+                return "Please provide a symbol of a language to which the word must be translated.";
+            }
+
+            int port = Integer.parseInt(portNumber);
+
+            if (!isPortNumberValid(port)) {
+                return "The port number provided: " + port + " is invalid.\n" +
+                        "It should be in the range from 1024(inclusive) to 49151(inclusive).";
+            }
+
             String response = "";
-            String translatedWord = "Word " + word + " translated to " + language + ":\n";
+            StringBuilder translatedWord = new StringBuilder("Word " + word + " translated to " + language + ":\n");
 
             out.println(word + " " + language + " " + port);
 
@@ -63,15 +77,17 @@ public class DictClientModel {
 
             while (response != null && !response.startsWith("DONE")) {
                 response = receptionIn.readLine();
-                translatedWord += response;
-                if (response.startsWith("NOTFOUND")) {
+                translatedWord.append(response);
+                if (response.startsWith("NOT FOUND")) {
                     break;
                 }
             }
 
-            return translatedWord;
+            return translatedWord.toString();
 
 
+        } catch (InputMismatchException exc) {
+            return "The port is invalid.";
         } catch (SocketTimeoutException exc) {
             return "Timeout exceeded.";
         } catch (Exception exc) {
@@ -81,6 +97,14 @@ public class DictClientModel {
         }
 
         return "";
+    }
+
+    private boolean isPortNumberValid(int port) {
+        if (port < 1024 || port > 49152) {
+            return false;
+        }
+
+        return true;
     }
 
     private void cleanExit() {
@@ -94,6 +118,7 @@ public class DictClientModel {
 
     private void cleanExitReception() {
         try {
+            receptionServerSocket.close();
             receptionIn.close();
             receptionSocket.close();
         } catch (Exception ignored) {}
