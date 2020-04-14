@@ -44,23 +44,24 @@ public class DictClientModel {
         }
     }
 
-    public String search(String word, String language, String portNumber) {
+    public String search(String word, String language, String portNumber) throws NumberFormatException,
+            SocketTimeoutException, Exception {
 
         try {
 
             if (word.isEmpty()) {
-                return "Please provide a word to be translated.";
+                throw new Exception("Please provide a word to be translated.");
             }
 
             if (language.isEmpty()) {
-                return "Please provide a symbol of a language to which the word must be translated.";
+                throw new Exception("Please provide a symbol of a language to which the word must be translated.");
             }
 
             int port = Integer.parseInt(portNumber);
 
             if (!isPortNumberValid(port)) {
-                return "The port number provided: " + port + " is invalid.\n" +
-                        "It should be in the range from 1024(inclusive) to 49151(inclusive).";
+                throw new Exception("The port number provided: " + port + " is invalid.\n" +
+                        "It should be in the range from 1024(inclusive) to 49151(inclusive).");
             }
 
             String response = "";
@@ -85,18 +86,15 @@ public class DictClientModel {
 
             return translatedWord.toString();
 
-
-        } catch (InputMismatchException exc) {
-            return "The port is invalid.";
+        } catch (NumberFormatException exc) {
+            throw new NumberFormatException("The port is invalid.");
         } catch (SocketTimeoutException exc) {
-            return "Timeout exceeded.";
+            throw new SocketTimeoutException("Timeout exceeded.");
         } catch (Exception exc) {
-            exc.printStackTrace();
+            throw new Exception(exc.toString());
         } finally {
             cleanExitReception();
         }
-
-        return "";
     }
 
     private boolean isPortNumberValid(int port) {
