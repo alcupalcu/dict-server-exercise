@@ -27,9 +27,9 @@ public class DictClientGUI extends JFrame {
 
         submit = new JButton("Submit");
 
+        translationArea = new JTextArea(10, 40);
         Font font = new Font("Dialog", Font.BOLD, 14);
         translationArea.setFont(font);
-        translationArea = new JTextArea(10, 40);
 
         panel = new JPanel(new GridLayout(4, 1));
         panel.add(wordLabel);
