@@ -42,7 +42,7 @@ public class DictClientController {
             String translatedWord = "";
 
             try {
-                translatedWord = model.getAnswer();
+                translatedWord = model.getResponse();
 
                 view.setTranslationArea(translatedWord);
 

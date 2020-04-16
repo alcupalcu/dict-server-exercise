@@ -27,7 +27,7 @@ public class DictClientGUI extends JFrame {
         submit = new JButton("Submit");
         getAnswer = new JButton("Get answer");
 
-        translationArea = new JTextArea(10, 40);
+        translationArea = new JTextArea(3, 40);
         Font font = new Font("Dialog", Font.BOLD, 14);
         translationArea.setFont(font);
 
@@ -40,8 +40,9 @@ public class DictClientGUI extends JFrame {
         panel.add(portText);
         panel.add(submit);
         panel.add(getAnswer);
+        panel.setBorder(BorderFactory.createLineBorder(Color.blue, 2));
 
-        container.add(panel);
+        container.add(panel, "Center");
         container.add(new JScrollPane(translationArea), "South");
 
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

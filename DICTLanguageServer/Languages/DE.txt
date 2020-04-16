@@ -1,0 +1,5 @@
+jabłko Apfel
+banan Banane
+arbuz Wassermelone
+cytryna Zitrone
+winogrono Traube

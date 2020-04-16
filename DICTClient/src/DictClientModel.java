@@ -14,6 +14,8 @@ public class DictClientModel {
     private PrintWriter out;
     private BufferedReader in;
     private BufferedReader receptionIn;
+    private String response = "No answer received. Try to submit first.";
+    private boolean isWrong;
 
     public DictClientModel(String server) {
         this.server = server;
@@ -55,14 +57,55 @@ public class DictClientModel {
             out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8),
                     true);
 
-            String response = in.readLine();
-            System.out.println("Server connection response: " + response);
+            out.println("CLIENT");
 
-            if (response.startsWith("BUSY")) {
+            String responseFromMain = in.readLine();
+            System.out.println("Server connection response: " + responseFromMain);
+
+            if (responseFromMain.startsWith("BUSY")) {
                 return "Server is too busy. Try again later.";
             }
 
             out.println(word + " " + language + " " + port);
+
+            System.out.println("Request for " + word + " translation to " + language + " sent.");
+
+            StringBuilder translatedWord = new StringBuilder();
+            response = "";
+
+            if(listeningPort == 0) {
+                return "The port number for the previous request was invalid.";
+            }
+
+            receptionServerSocket = new ServerSocket(listeningPort);
+            receptionServerSocket.setSoTimeout(3000);
+
+            receptionSocket = receptionServerSocket.accept();
+
+            receptionIn = new BufferedReader(new InputStreamReader(receptionSocket.getInputStream(),
+                    StandardCharsets.UTF_8));
+
+            isWrong = false;
+
+            while (!response.startsWith("DONE")) {
+                response = receptionIn.readLine();
+                if (!response.startsWith("DONE"))
+                    translatedWord.append(response);
+                if (response.startsWith("NOT FOUND")) {
+                    response = "Translation not found";
+                    isWrong = true;
+                    break;
+                }
+                if (response.startsWith("SERVER NOT FOUND")) {
+                    response = "The following language server: " + language + " is not available.";
+                    isWrong = true;
+                    break;
+                }
+            }
+
+            if (!isWrong) {
+                response = new String(translatedWord);
+            }
 
         } catch (UnknownHostException exc) {
             throw new UnknownHostException("Unknown host: " + server);
@@ -72,56 +115,14 @@ public class DictClientModel {
             throw new Exception("Unable to connect to the server. Server might not be available.");
         } finally {
             cleanExit();
+            cleanExitReception();
         }
 
         return "Request for translation of word " + word + " has been sent to the server.\n" +
                 "Waiting on port " + port + " for the answer.";
     }
 
-    public String getAnswer() {
-
-        StringBuilder translatedWord = new StringBuilder();
-        String response = "";
-
-        if(this.listeningPort == 0) {
-            return "The port number for the previous request was invalid.";
-        }
-
-        try {
-            receptionServerSocket = new ServerSocket(this.listeningPort);
-            receptionServerSocket.setSoTimeout(3000);
-
-            receptionSocket = receptionServerSocket.accept();
-
-            receptionIn = new BufferedReader(new InputStreamReader(receptionSocket.getInputStream(),
-                    StandardCharsets.UTF_8));
-
-            boolean isWrong = false;
-
-            while (!response.startsWith("DONE")) {
-                response = receptionIn.readLine();
-                translatedWord.append(response);
-                if (response.startsWith("WRONG DATA") || response.startsWith("NOT FOUND")) {
-                    isWrong = true;
-                    break;
-                }
-            }
-
-            if(isWrong) {
-                return response;
-            }
-        } catch (SocketTimeoutException exc) {
-            return "Waited too long for the answer.\nServer not responding.";
-        } catch (IOException e) {
-            return "Host is not able to receive translation due to IOException.";
-        } catch (Exception exc) {
-            return exc.toString();
-        } finally {
-            cleanExitReception();
-        }
-
-        return new String(translatedWord);
-    }
+    public String getResponse() { return this.response; }
 
     private boolean isPortNumberValid(int port) {
         if (port < 1024 || port > 49152) {
@@ -151,7 +152,5 @@ public class DictClientModel {
         }
     }
 
-    private void setListeningPort(int listeningPort) throws Exception {
-        this.listeningPort = listeningPort;
-    }
+    private void setListeningPort(int listeningPort) throws Exception { this.listeningPort = listeningPort; }
 }

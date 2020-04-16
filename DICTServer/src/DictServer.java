@@ -2,9 +2,9 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 public class DictServer extends Thread{
 
@@ -12,11 +12,7 @@ public class DictServer extends Thread{
     private BufferedReader in = null;
     private PrintWriter out = null;
 
-    private Map<String, Integer> registeredLanguageServersMap = new LinkedHashMap<>();
-
-    private static Pattern pattern = Pattern.compile("[\\w\\s]", 3);
-
-    private static String[] responses = {"WRONG DATA", "BUSY"};
+    private static Map<String, Integer> registeredLanguageServersMap = new LinkedHashMap<>();
 
     private volatile boolean serverRunning = true;
 
@@ -35,6 +31,7 @@ public class DictServer extends Thread{
     public void run() {
         while (serverRunning) {
             try {
+
                 Socket connectionSocket = serverSocket.accept();
 
                 System.out.println("Connection established by: " + serverThreadID);
@@ -53,6 +50,16 @@ public class DictServer extends Thread{
             in = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
             out = new PrintWriter(connectionSocket.getOutputStream(), true);
 
+            String[] connectionStart = in.readLine().split(" ");
+
+            if (connectionStart[0].equals("LANG")) {
+                System.out.println("Language server command: " + Arrays.toString(connectionStart));
+                registeredLanguageServersMap.put(connectionStart[1], Integer.parseInt(connectionStart[2]));
+                System.out.println("A new language server is available. Server language: " + connectionStart[1]);
+                System.out.println("Closing connection with language server...");
+                return;
+            }
+
             String serverResponse = "OK";
             out.println(serverResponse);
             System.out.println(serverResponse + " sent.");
@@ -61,30 +68,37 @@ public class DictServer extends Thread{
 
             if(line != null) {
                 String response;
-                String[] request = pattern.split(line, 3);
-
-                if (request[0].equals("LANG")) {
-                    registeredLanguageServersMap.put(request[1], Integer.parseInt(request[2]));
-                    System.out.println("A new language server is available. Server language: " + request[1]);
-                    return;
-                }
+                String[] request = line.split(" ");
 
                 String word = request[0];
                 String language = request[1];
                 int port = Integer.parseInt(request[2]);
 
+                System.out.println("Request for " + word + " from client listening on port " + port + " for language "
+                        + language + " received.");
+
+                System.out.println("Available servers:\n" + registeredLanguageServersMap.toString());
+
                 if (!registeredLanguageServersMap.containsKey(language)) {
-                    out.println("NOT FOUND \nThe following language server: " + language + " is not available.");
+                    System.out.println("Language server " + language + " is not available.\n" +
+                            "Sending info to the client...\nClosing connection with the client...");
+                    Socket responseSocket = new Socket("localhost", port);
+                    PrintWriter outClient = new PrintWriter(responseSocket.getOutputStream(), true);
+                    outClient.println("SERVER NOT FOUND");
+                    try {
+                        outClient.close();
+                        responseSocket.close();
+                    } catch (Exception ignored) { }
                 } else {
                     Socket languageServerSocket = new Socket("localhost",
                             registeredLanguageServersMap.get(language));
                     PrintWriter outLang = new PrintWriter(languageServerSocket.getOutputStream(), true);
-                    outLang.write(word + " " + port);
+                    System.out.println("Sending request for " + word + " to the language server " + language + "...");
+                    outLang.println("TRANSLATE" + " " + word + " " + port);
                     try {
                         outLang.close();
-                    } catch (Exception exc) {
-                        exc.printStackTrace();
-                    }
+                        languageServerSocket.close();
+                    } catch (Exception ignored) { }
                 }
 
             }
@@ -95,6 +109,7 @@ public class DictServer extends Thread{
                 in.close();
                 out.close();
                 connectionSocket.close();
+                System.out.println("Closed connection.");
             } catch (Exception ignored) { }
         }
     }
